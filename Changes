@@ -1,0 +1,6 @@
+____________________________________________________________________________
+[  2920] By: autrijus                              on 2002/12/25  14:43:18
+        Log: * Initial CPAN Release for RSS Aggregator.
+	   + Build.PL MANIFEST MANIFEST.SKIP Makefile.PL
+	   + README lib/XML/RSS/Aggregate.pm
+	   + t/0-signature.t t/1-basic.t
