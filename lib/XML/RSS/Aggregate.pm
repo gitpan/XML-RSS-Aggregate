@@ -1,8 +1,8 @@
 # $File: //member/autrijus/XML-RSS-Aggregate/lib/XML/RSS/Aggregate.pm $ $Author: autrijus $
-# $Revision: #1 $ $Change: 2920 $ $DateTime: 2002/12/25 14:43:18 $
+# $Revision: #4 $ $Change: 2924 $ $DateTime: 2002/12/25 15:04:33 $
 
 package XML::RSS::Aggregate;
-$XML::RSS::Aggregate::VERSION = '0.01';
+$XML::RSS::Aggregate::VERSION = '0.02';
 
 use strict;
 use XML::RSS;
@@ -64,7 +64,8 @@ items to the object's C<add_item>.
 
 The optional C<sort_by> argument specifies the function to use for
 ordering RSS items; it defaults to sort them by their C<{dc}{date}>
-attribute, with ties broken by their C<{link}> attribute.
+attribute (converted to absolute timestamps), with ties broken by
+their C<{link}> attribute.
 
 The optional C<uniq_by> argument specifies the function to use for
 removing duplicate RSS items; it defaults to remove items that has
@@ -97,8 +98,9 @@ sub aggregate {
 
     my $sources = $args{sources} or return;
     my $sort_by = $args{sort_by} || sub {
-        sprintf("%20s", str2time($_[0]->{dc}{date})).
-        $_[0]->{link}
+        my $date = $_[0]->{dc}{date};
+        $date =~ s/:(\d\d)$/$1/ if $date;
+        sprintf("%20s", str2time($date)).$_[0]->{link}
     };
     my $uniq_by = $args{uniq_by} || sub {
         $_[0]->{link}
@@ -113,8 +115,10 @@ sub aggregate {
         grep { $_->[1] }
         map  { [ $_ => scalar($sort_by->($_)) ] }
         grep { !$saw{$uniq_by->($_)}++ } @{$old_items},
-        map  { encode_entities($_, '&<>') for
-                   map { ref($_) ? values %{$_} : $_ } values %{$_}; $_ }
+        map  { encode_entities($_, '&<>') for grep {!ref($_)} values %{$_}; $_ }
+        map  { encode_entities($_, '&<>') for grep {!ref($_)} values %{$_->{dc}}; $_ }
+        map  { encode_entities($_, '&<>') for grep {!ref($_)} values %{$_->{syn}}; $_ }
+        map  { encode_entities($_, '&<>') for grep {!ref($_)} @{$_->{taxo}}; $_ }
         map  { eval { (my $rss = XML::RSS->new)->parse(get($_)); @{$rss->{items}} } }
         grep { /^\w+:/ } @{$sources};
 
